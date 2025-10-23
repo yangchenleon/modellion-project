@@ -73,6 +73,29 @@ async def get_presigned(image_id: int, db: Annotated[Session, Depends(get_db)]) 
     return PresignResponse(url=url)
 
 
+@router.put("/{image_id}/set-cover", response_model=ImageOut, dependencies=[Depends(require_admin)])
+async def set_image_as_cover(
+    image_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> ImageOut:
+    """设置图片为产品的头像"""
+    entity = db.get(Image, image_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="图片不存在")
+    
+    # 取消该产品其他图片的头像标记
+    db.query(Image).filter(
+        Image.product_id == entity.product_id,
+        Image.id != image_id
+    ).update({Image.is_cover: False})
+    
+    # 设置当前图片为头像
+    entity.is_cover = True
+    db.commit()
+    db.refresh(entity)
+    return ImageOut.model_validate(entity)
+
+
 @router.delete("/{image_id}", status_code=204, response_class=Response, dependencies=[Depends(require_admin)])
 async def delete_image(
     image_id: int,

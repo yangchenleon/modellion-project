@@ -17,6 +17,7 @@ class Image(Base):
     image_filename: Mapped[str] = mapped_column(Text, nullable=False)
     image_hash: Mapped[Optional[str]] = mapped_column(Text, unique=True)
     minio_path: Mapped[Optional[str]] = mapped_column(Text)
+    is_cover: Mapped[bool] = mapped_column(default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     product = relationship("Product", back_populates="images")

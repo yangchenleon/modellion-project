@@ -3,7 +3,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: modellion-backend
     env_file: .env
+    environment:
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
     ports:
       - "8000:8000"
     volumes:
@@ -15,23 +18,30 @@ services:
       - minio-setup
     command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}"]
 
-  frontend:
+  frontend-vue:
     build:
-      context: ./frontend
+      context: ./frontend-vue
       dockerfile: Dockerfile
+    container_name: modellion-frontend-vue
     environment:
-      - VITE_API_BASE=${VITE_API_BASE}
+      - VITE_API_BASE=${VITE_API_BASE:-http://backend:8000}
+      - VITE_MINIO_PUBLIC_BASE=${VITE_MINIO_PUBLIC_BASE:-http://localhost:9000}
     ports:
-      - "5173:5173"
+      - "5174:5174"
     depends_on:
       - backend
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5174"]
+    volumes:
+      - ./frontend-vue:/app
+      - /app/node_modules
 
   minio:
-    image: minio/minio:RELEASE.2024-06-13T22-53-53Z
+    image: minio/minio:latest
+    container_name: modellion-minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -40,13 +50,19 @@ services:
 
   minio-setup:
     image: minio/mc:latest
+    container_name: modellion-minio-setup
+    env_file: .env
     depends_on:
       - minio
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      until /usr/bin/mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}; do echo 'waiting for minio...' && sleep 1; done
-      /usr/bin/mc mb -p local/${MINIO_BUCKET} || true
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 $${MINIO_ACCESS_KEY:-minioadmin} $${MINIO_SECRET_KEY:-minioadmin}; do
+        echo 'waiting for minio...' && sleep 1;
+      done &&
+      /usr/bin/mc mb -p local/$${MINIO_BUCKET:-bandai-hobby} &&
+      /usr/bin/mc anonymous set download local/$${MINIO_BUCKET:-bandai-hobby} &&
       /usr/bin/mc ls local
+      "
 
   postgres:
     image: postgres:16
@@ -64,3 +80,4 @@ volumes:
   backend_data:
   minio_data:
   pg_data:
+

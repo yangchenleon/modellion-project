@@ -48,10 +48,20 @@ def _normalize_object_name(minio_path: str) -> str:
 
 
 def presigned_url(minio_path: str, expires_seconds: int = 3600) -> str:
-    client = get_minio_client()
+    """
+    生成图片访问URL
+    因为桶已设置为公开读取，所以直接返回公开URL而不是预签名URL
+    """
+    s = get_settings()
     bucket = get_bucket_name()
     object_name = _normalize_object_name(minio_path)
-    return client.presigned_get_object(bucket, object_name, expires=timedelta(seconds=expires_seconds))
+    
+    # 使用公开端点或内部端点
+    endpoint = s.MINIO_PUBLIC_ENDPOINT or s.MINIO_ENDPOINT
+    protocol = "https" if s.MINIO_USE_SECURE else "http"
+    
+    # 构造公开访问URL（桶已设置为公开读取）
+    return f"{protocol}://{endpoint}/{bucket}/{object_name}"
 
 
 def remove_object(minio_path: str) -> None:

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     DATABASE_PATH: str | None = "/data/app.db"
 
     MINIO_ENDPOINT: str = "minio:9000"
+    MINIO_PUBLIC_ENDPOINT: str | None = None
     MINIO_USE_SECURE: bool = False
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"

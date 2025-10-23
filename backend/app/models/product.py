@@ -14,6 +14,7 @@ class Product(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     product_name: Mapped[Optional[str]] = mapped_column(Text)
+    product_name_cn: Mapped[Optional[str]] = mapped_column(Text)  # 中文翻译
     price: Mapped[Optional[str]] = mapped_column(Text)
     release_date: Mapped[Optional[str]] = mapped_column(Text)
     article_content: Mapped[Optional[str]] = mapped_column(Text)

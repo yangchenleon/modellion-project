@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status, Response
@@ -14,6 +15,7 @@ from ..utils import parse_price_to_int, parse_release_date
 
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -23,7 +25,7 @@ def _apply_filters(query, params: ProductQuery):
     if params.tag:
         query = query.where(Product.product_tag == params.tag)
     if params.series:
-        query = query.where(Product.series == params.series)
+        query = query.where(Product.series.ilike(f"%{params.series}%"))
     if params.price_min is not None:
         query = query.where(Product.price_value >= params.price_min)
     if params.price_max is not None:
@@ -185,6 +187,31 @@ async def delete_product(product_id: int, db: Annotated[Session, Depends(get_db)
     entity = db.get(Product, product_id)
     if not entity:
         raise HTTPException(status_code=404, detail="未找到")
+    
+    logger.info(f"开始删除产品 #{product_id}: {entity.product_name}")
+    
+    # 删除关联的图片记录和MinIO文件
+    from ..minio_client import remove_object
+    images = db.query(Image).filter(Image.product_id == product_id).all()
+    logger.info(f"找到 {len(images)} 张图片需要删除")
+    for img in images:
+        if img.minio_path:
+            try:
+                remove_object(img.minio_path)
+                logger.info(f"已删除MinIO文件: {img.minio_path}")
+            except Exception as e:
+                logger.warning(f"删除MinIO文件失败: {img.minio_path}, 错误: {e}")
+    
+    # 删除产品（会自动级联删除images记录）
     db.delete(entity)
     db.commit()
+    logger.info(f"产品 #{product_id} 已从数据库删除")
+    
+    # 验证删除
+    verify = db.get(Product, product_id)
+    if verify:
+        logger.error(f"警告：产品 #{product_id} 删除后仍然存在！")
+    else:
+        logger.info(f"确认：产品 #{product_id} 已完全删除")
+    
     return Response(status_code=204)

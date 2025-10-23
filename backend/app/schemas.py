@@ -31,6 +31,7 @@ class UserOut(BaseModel):
 # Products
 class ProductBase(BaseModel):
     product_name: Optional[str] = None
+    product_name_cn: Optional[str] = None
     price: Optional[str] = None
     release_date: Optional[str] = None
     article_content: Optional[str] = None
@@ -56,6 +57,7 @@ class ProductUpdate(BaseModel):
 class ProductOut(BaseModel):
     id: int
     product_name: Optional[str]
+    product_name_cn: Optional[str]
     price: Optional[str]
     release_date: Optional[str]
     article_content: Optional[str]
@@ -103,6 +105,7 @@ class ImageOut(BaseModel):
     image_filename: str
     image_hash: Optional[str]
     minio_path: Optional[str]
+    is_cover: bool
     created_at: datetime
 
     class Config:
