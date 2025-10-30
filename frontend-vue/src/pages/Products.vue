@@ -47,23 +47,32 @@ const columns = [
 </script>
 
 <template>
-  <a-card title="产品列表">
-    <template #extra>
-      <a-button type="primary" @click="() => router.push('/products/0')">新建</a-button>
+  <a-card :bordered="false" style="box-shadow: 0 2px 8px rgba(0,0,0,0.09);">
+    <template #title>
+      <span style="font-size:18px;font-weight:500;">📦 产品列表</span>
     </template>
-    <a-form layout="inline">
-      <a-form-item label="名称">
-        <a-input v-model:value="name" allow-clear placeholder="包含关键词" />
-      </a-form-item>
-      <a-form-item label="标签">
-        <a-input v-model:value="tag" allow-clear />
-      </a-form-item>
-      <a-form-item label="系列">
-        <a-input v-model:value="series" allow-clear />
-      </a-form-item>
-      <a-button type="primary" @click="handleSearch">筛选</a-button>
-    </a-form>
-    <a-table style="margin-top:12px;" :loading="loading" rowKey="id" :dataSource="data.items"
+    <template #extra>
+      <a-button type="primary" icon="plus" @click="() => router.push('/products/0')">新建产品</a-button>
+    </template>
+    
+    <a-card :bordered="false" style="background:#fafafa;margin-bottom:16px;">
+      <a-form layout="inline" :label-col="{ span: 6 }">
+        <a-form-item label="名称">
+          <a-input v-model:value="name" allow-clear placeholder="包含关键词" style="width:200px;" />
+        </a-form-item>
+        <a-form-item label="标签">
+          <a-input v-model:value="tag" allow-clear style="width:150px;" />
+        </a-form-item>
+        <a-form-item label="系列">
+          <a-input v-model:value="series" allow-clear style="width:150px;" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleSearch" :loading="loading">搜索</a-button>
+        </a-form-item>
+      </a-form>
+    </a-card>
+    
+    <a-table :loading="loading" rowKey="id" :dataSource="data.items"
       :pagination="{
         current: data.meta.page,
         total: data.meta.total,

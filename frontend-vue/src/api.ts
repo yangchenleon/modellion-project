@@ -41,6 +41,12 @@ async function http<T>(path: string, options: RequestInit = {}): Promise<T> {
     } catch {}
     throw new Error(msg);
   }
+  
+  // 204 No Content 响应
+  if (res.status === 204) {
+    return null as T;
+  }
+  
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) return (await res.json()) as T;
   // @ts-expect-error any
@@ -108,7 +114,48 @@ export const api = {
       throw new Error("登录已过期，请重新登录");
     }
     
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      let errorMsg = res.statusText;
+      try {
+        const data = await res.json();
+        errorMsg = data.detail || data.message || errorMsg;
+      } catch {
+        errorMsg = await res.text() || errorMsg;
+      }
+      throw new Error(errorMsg);
+    }
+    return res.json();
+  },
+  async uploadImageWithCover(productId: number, file: File, isCover: boolean) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("is_cover", String(isCover));
+    const res = await fetch(`${API_BASE}/api/images/upload/${productId}`.replace(/\/$/, ""), {
+      method: "POST",
+      body: form,
+      headers: { ...authHeaders() },
+    });
+    
+    // 处理401（FormData上传不走http函数）
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new Error("登录已过期，请重新登录");
+    }
+    
+    if (!res.ok) {
+      let errorMsg = res.statusText;
+      try {
+        const data = await res.json();
+        errorMsg = data.detail || data.message || errorMsg;
+      } catch {
+        errorMsg = await res.text() || errorMsg;
+      }
+      throw new Error(errorMsg);
+    }
     return res.json();
   },
   async presign(imageId: number) {
@@ -128,12 +175,6 @@ export const api = {
   },
 
   // import
-  async importFromJson() {
-    return http<{ total: number; created: number; updated: number; errors: string[] }>(
-      "/api/import/json",
-      { method: "POST" }
-    );
-  },
   async importFromZip(file: File) {
     const form = new FormData();
     form.append("file", file);

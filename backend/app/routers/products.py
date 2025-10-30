@@ -163,6 +163,7 @@ async def update_product(product_id: int, payload: ProductUpdate, db: Annotated[
         entity.url = payload.url
     for field in [
         "product_name",
+        "product_name_cn",
         "price",
         "release_date",
         "article_content",

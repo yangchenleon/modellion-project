@@ -22,14 +22,30 @@ onMounted(async () => {
     }))
   } catch {}
 })
+
+const handleImageHover = (el: EventTarget | null, enter: boolean) => {
+  if (el instanceof HTMLElement) {
+    if (enter) {
+      el.style.borderColor = '#1890ff'
+      el.style.boxShadow = '0 2px 8px rgba(24,144,255,0.2)'
+    } else {
+      el.style.borderColor = '#d9d9d9'
+      el.style.boxShadow = 'none'
+    }
+  }
+}
 </script>
 
 <template>
-  <a-card v-if="product" :title="(product.product_name_cn || product.product_name) || '详情'">
+  <a-card v-if="product" :bordered="false" style="box-shadow: 0 2px 8px rgba(0,0,0,0.09);">
+    <template #title>
+      <span style="font-size:18px;font-weight:500;">ℹ️ {{ (product.product_name_cn || product.product_name) || '产品详情' }}</span>
+    </template>
+    
     <div style="display:flex;gap:24px;">
       <!-- 左侧：产品信息表格 -->
       <div style="flex:1;">
-        <a-descriptions bordered :column="1" size="middle">
+        <a-descriptions bordered :column="1" size="middle" :labelStyle="{ background: '#fafafa', fontWeight: 500 }">
           <a-descriptions-item label="名称">{{ product.product_name_cn || product.product_name }}</a-descriptions-item>
           <a-descriptions-item v-if="product.product_name_cn" label="日文名称" style="font-size:12px;color:#999;">{{ product.product_name }}</a-descriptions-item>
           <a-descriptions-item label="价格">{{ product.price }}</a-descriptions-item>
@@ -61,18 +77,31 @@ onMounted(async () => {
 
     <!-- 详情图片 -->
     <div v-if="detailImages.length > 0" style="margin-top:24px;">
-      <h3 style="margin-bottom:12px;">详情图片 ({{ detailImages.length }})</h3>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;">
-        <div v-for="img in detailImages" :key="img.id" style="border:1px solid #eee;padding:8px;">
-          <img :alt="img.image_filename" :src="img._url || ''" width="200"
-            @click="()=>{ if(img._url) window.open(img._url, '_blank') }" />
+      <a-card :bordered="false" style="background:#fafafa;">
+        <template #title>
+          <span style="font-size:16px;font-weight:500;">🖼️ 详情图片 ({{ detailImages.length }})</span>
+        </template>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+          <div v-for="img in detailImages" :key="img.id" class="detail-image-item"
+            @click="()=>{ if(img._url) window.open(img._url, '_blank') }"
+            @mouseenter="(e)=>handleImageHover(e.currentTarget, true)"
+            @mouseleave="(e)=>handleImageHover(e.currentTarget, false)">
+            <img :alt="img.image_filename" :src="img._url || ''" width="200" style="display:block;" />
+          </div>
         </div>
-      </div>
+      </a-card>
     </div>
   </a-card>
 </template>
 
 <style scoped>
+.detail-image-item {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
 </style>
 
 

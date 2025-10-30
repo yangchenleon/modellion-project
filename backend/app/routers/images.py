@@ -4,7 +4,7 @@ import os
 import tempfile
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Response
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -30,10 +30,15 @@ async def upload_image(
     product_id: int,
     db: Annotated[Session, Depends(get_db)],
     file: UploadFile = File(...),
+    is_cover: str = Form("false"),
 ) -> ImageOut:
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="产品不存在")
+    
+    # 将字符串转换为布尔值
+    is_cover_bool = is_cover.lower() in ("true", "1", "yes")
+    print(f"Upload image: product_id={product_id}, is_cover={is_cover} -> {is_cover_bool}, filename={file.filename}")
 
     # save temp and compute md5
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -44,19 +49,35 @@ async def upload_image(
         img_hash = md5_of_file(tmp_path)
         exists = db.query(Image).filter(Image.image_hash == img_hash).one_or_none()
         if exists:
+            print(f"Image already exists with hash: {img_hash}")
             raise HTTPException(status_code=400, detail="图片已存在（MD5 重复）")
         object_name = f"{product_id}/{img_hash}_{file.filename}"
         minio_path = put_file(tmp_path, object_name)
+        
+        # 如果设置为首图，先取消该产品其他图片的首图标记
+        if is_cover_bool:
+            db.query(Image).filter(
+                Image.product_id == product_id
+            ).update({Image.is_cover: False})
+        
         entity = Image(
             product_id=product_id,
             image_filename=file.filename,
             image_hash=img_hash,
             minio_path=object_name,
+            is_cover=is_cover_bool,
         )
         db.add(entity)
         db.commit()
         db.refresh(entity)
+        print(f"Successfully created image: {entity.id}")
         return ImageOut.model_validate(entity)
+    except HTTPException:
+        # 重新抛出HTTPException
+        raise
+    except Exception as e:
+        print(f"Error uploading image: {e}")
+        raise HTTPException(status_code=500, detail=f"上传图片失败: {str(e)}")
     finally:
         try:
             os.unlink(tmp_path)

@@ -116,7 +116,3 @@ def translate_product_name(product_name: str) -> Optional[str]:
     #     return None
     
     return None
-
-
-print(translate_with_volcano("ユニコーンガンダム"))
-

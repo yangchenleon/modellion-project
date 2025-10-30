@@ -46,6 +46,7 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     product_name: Optional[str] = None
+    product_name_cn: Optional[str] = None
     price: Optional[str] = None
     release_date: Optional[str] = None
     article_content: Optional[str] = None
